@@ -4,8 +4,30 @@ from coreNode import CoreNode
 from layer1node import Layer1Node
 from layer2node import Layer2Node
 from ports import *
+import re
 
-def initStructure():
+TRANSACTIONS = "transactions.txt"
+
+# Method to read file
+def import_transactions():
+    file = open(TRANSACTIONS)
+    file_data = file.read()
+    file_lines = file_data.splitlines()
+    transactions = []
+    for line in file_lines:
+        instructions = []
+        for instruction in line.split(', '):
+            inst_targ = re.sub(r'[<>()]', " ", instruction).split(' ')
+            if len(inst_targ) > 2:
+                instructions.append([inst_targ[0], inst_targ[1], inst_targ[2]])
+            elif len(inst_targ) > 1:
+                instructions.append([inst_targ[0], inst_targ[1]])
+            else : instructions.append(inst_targ[0])
+        transactions.append(instructions)
+    return transactions
+
+
+def init_structure():
     nodes = []
     node_threads = []
 
@@ -16,7 +38,7 @@ def initStructure():
 
     # Layer 1 (B1 -> A2, B2 > A3)
     nodes.append(Layer1Node(HOST, id = 1, parentId = 2))
-    nodes.append(Layer1Node(HOST, id = 2, parentId = 3 ))
+    nodes.append(Layer1Node(HOST, id = 2, parentId = 3))
 
     # Layer 2 (C1 -> B2, C2 -> B2)
     nodes.append(Layer2Node(HOST, id = 1, parentId = 2))
@@ -35,8 +57,11 @@ def initStructure():
 # Big Brother is the main class that initializes the network and starts the threads, oversees the network
 # and handles the communication with the web server
 def main():
+    # Read transactions file
+    transactions = import_transactions()
+
     # Initialize the node structure
-    thread = threading.Thread(target = initStructure())
+    thread = threading.Thread(target = init_structure())
     thread.start()
 
     # Start socket for overseeing connections
