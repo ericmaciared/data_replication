@@ -1,21 +1,52 @@
-import socket
 import time
+import threading
+from abc import ABC
+
+from node import Node
 from ports import *
 
-class Layer1Node:
-    # Layer 1 nodes receive data every 10 updates (lazy) through passive replication, primary backup
+TIMER = 10
+
+class Layer1Node(Node, ABC):
+    # Core layer nodes use update everywhere, active, and eager replication to replicate data
     def __init__(self, host, id, parentId):
-        self.host = host
-        self.port = id + CORE_PORT
-        
-        # Init versions of file (Array of 10 ints)
-        self.versions = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        
-        # Init log file
-        self.log = f"logs/B{id}.txt"
-        file = open(self.log, "w")
-        file.write(str(self.versions))
-        file.close()
+        Node.__init__(self, host, id, L1_LAYER)
+        print("Initializing L1 Node", id)
+
+        self.id = id
+        self.parentId = parentId
+        self.parent = None
+
+        # Values to operate with Data Replication
+        self.timeThread = threading.Timer(TIMER, self.update_children)
 
     def run(self):
+        # Accept connection from parent
+        self.socket.listen(1)
+        conn, addr = self.socket.accept()
+        self.parent = conn
+
+        rcv = threading.Thread(target=self.receive_from_peer, args=(self.parent,))
+        rcv.start()
+        self.timeThread.start()
+
+        print("L1 Node", self.id, " received parent connection")
+
+        # While alive dispatch outgoing messages
+        while self.is_alive or self.msg_queue:
+            time.sleep(0.1)
+            if self.msg_queue and self.dest_queue:
+                self.send_to_peer(self.dest_queue.pop(0), self.msg_queue.pop(0))
+
+        # Program Closing
+        rcv.join()
+        self.timeThread.cancel()
+        self.timeThread.join()
+
+    def process_instruction(self, instruction, sender, reply, position, value, bigBrother=None):
         pass
+
+
+
+
+
