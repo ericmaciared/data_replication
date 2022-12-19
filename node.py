@@ -7,13 +7,16 @@ from ports import *
 
 class Node:
     # Core layer nodes use update everywhere, active, and eager replication to replicate data
-    def __init__(self, host, id, layer):
+    def __init__(self, host, id, layer, bigBrotherTalking):
         
         # Boolean to kill the process
         self.is_alive = True
 
         self.id = id
         self.host = host
+
+        self.bigBrotherThread = None
+        self.bigBrotherTalking = bigBrotherTalking
 
         # Override in subclasses' constructor methods
         self.receive_peers = None
@@ -48,6 +51,13 @@ class Node:
     @abstractmethod
     def run(self):
         pass
+
+    def connect_to_big_bro(self):
+        print("BIG BRO TALKING")
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((HOST, BIG_BROTHER_PORT))
+        self.bigBrotherThread = threading.Thread(target=self.receive_from_peer, args=(sock, sock))
+        self.bigBrotherThread.start()
 
     # Add child nodes to connect to
     def add_child(self, child):
@@ -87,43 +97,49 @@ class Node:
         for child in self.children:
             self.msg_queue.append(message)
             self.dest_queue.append(child)
+        while self.msg_queue:
+            time.sleep(0.3)
+        for child in self.children:
+            child.close()
+        self.children.clear()
 
     @abstractmethod
     def process_message(self, message, bigBrother=None):
         message = message.decode().split('\n')
-        print(self.layer, self.id, "received message", message)
-        reply = None
-        # Message: SenderID + Instruction + Value1 + Value2
+        if message != ['']:
+            print(self.layer, self.id, "received message", message)
+            reply = None
+            # Message: SenderID + Instruction + Value1 + Value2
 
-        sender = int(message[0])
-        instruction = message[1]
-        position = None
-        value = None
+            sender = int(message[0])
+            instruction = message[1]
+            position = None
+            value = None
 
-        if instruction == READ:
-            position = int(message[2])
-            value = self.versions[position]
-            reply = str(self.id) + '\n' + READ_ACK + '\n' + str(self.versions[position])
+            if instruction == READ:
+                position = int(message[2])
+                value = self.versions[position]
+                reply = str(self.id) + '\n' + READ_ACK + '\n' + str(self.versions[position])
 
-        elif instruction == WRITE:
-            position = int(message[2])
-            value = int(message[3])
-            self.write_value(position, value)
-            reply = str(self.id) + '\n' + WRITE_ACK + '\n' + str(self.versions[position])
+            elif instruction == WRITE:
+                position = int(message[2])
+                value = int(message[3])
+                self.write_value(position, value)
+                reply = str(self.id) + '\n' + WRITE_ACK + '\n' + str(self.versions[position])
 
-        elif instruction == UPDATE:
-            self.update_values(message[2])
-            reply = str(self.id) + '\n' + UPDATE_ACK + '\n' + str(self.versions)
+            elif instruction == UPDATE:
+                self.update_values(message[2])
+                reply = str(self.id) + '\n' + UPDATE_ACK + '\n' + str(self.versions)
 
-        elif instruction == BEGIN:
-            print("ERROR SENDING BEGIN TO CORE NODE")
-            self.is_alive = False
-            exit()
+            elif instruction == BEGIN:
+                print("ERROR SENDING BEGIN TO CORE NODE")
+                self.is_alive = False
+                exit()
 
-        elif instruction == CLOSE:
-            self.is_alive = False
+            elif instruction == CLOSE:
+                self.close()
 
-        self.process_instruction(instruction, sender, reply, position, value, bigBrother)
+            self.process_instruction(instruction, sender, reply, position, value, bigBrother)
 
     @abstractmethod
     def process_instruction(self, instruction, sender, reply, position, value, bigBrother):
@@ -135,6 +151,10 @@ class Node:
             self.versions[i] = int(value)
         self.write_to_log()
 
+    def close(self):
+        self.is_alive = False
+        self.close_children()
+        self.socket.close()
 
 
 

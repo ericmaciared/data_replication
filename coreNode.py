@@ -7,8 +7,8 @@ from ports import *
 
 class CoreNode(Node, ABC):
     # Core layer nodes use update everywhere, active, and eager replication to replicate data
-    def __init__(self, host, id, peers):
-        Node.__init__(self, host, id, CORE_LAYER)
+    def __init__(self, host, id, peers, bigBrotherTalking):
+        Node.__init__(self, host, id, CORE_LAYER, bigBrotherTalking)
         print("Initializing Core Node", id)
 
         # Lock
@@ -45,16 +45,8 @@ class CoreNode(Node, ABC):
             rcv_threads.append(rcv)
             rcv.start()
 
-        print("Core Node", self.id, " received all peer connections")
-
-        # Core node #1 will always be listening to the instructions provided by Big Brother
-        bigBrotherThread = None
-        if self.id == 1:
-            print("BIG BRO TALKING")
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((HOST, BIG_BROTHER_PORT))
-            bigBrotherThread = threading.Thread(target=self.receive_from_peer, args=(sock,sock))
-            bigBrotherThread.start()
+        # Connect to big brother if required
+        if self.bigBrotherTalking: self.connect_to_big_bro()
 
         # While alive dispatch outgoing messages
         while self.is_alive or self.msg_queue:
@@ -70,8 +62,8 @@ class CoreNode(Node, ABC):
         # Program Closing
         for thread in rcv_threads:
             thread.join()
-        if bigBrotherThread is not None: bigBrotherThread.join()
-
+        if self.bigBrotherThread is not None: self.bigBrotherThread.join()
+        print("CLOSED NODE", self.layer, self.id)
 
     # Connect outgoing connections to peers
     def connect_to_peers(self, nodes):
@@ -93,6 +85,21 @@ class CoreNode(Node, ABC):
         super().write_value(position, value)
         self.num_updates += 1
         print("hey, # of updates is", self.num_updates)
+
+    def close(self):
+        if self.bigBrotherTalking:
+            writeFwd = str(self.id) + '\n' + CLOSE
+            for conn in self.send_peers:
+                if conn is not None:
+                    self.msg_queue.append(writeFwd)
+                    self.dest_queue.append(conn)
+        while self.msg_queue:
+            time.sleep(0.3)
+        for conn in self.send_peers:
+            if conn is not None:
+                conn.close()
+        super().close()
+
 
     # Accept all incoming connections
     def accept_peers(self, nodes):
@@ -125,16 +132,6 @@ class CoreNode(Node, ABC):
                     print(self.num_acks)
                 print("ACKS Received!: ", self.num_acks)
                 self.num_acks = 0
-
-            if instruction == CLOSE:
-                writeFwd = str(self.id) + '\n' + CLOSE
-                for conn in self.send_peers:
-                    if conn is not None:
-                        self.msg_queue.append(writeFwd)
-                        self.dest_queue.append(conn)
-                for child in self.children:
-                    self.msg_queue.append(writeFwd)
-                    self.dest_queue.append(child)
             if reply is not None:
                 self.msg_queue.append(reply)
                 self.dest_queue.append(bigBrother)
