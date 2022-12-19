@@ -7,8 +7,8 @@ from ports import *
 
 class CoreNode(Node, ABC):
     # Core layer nodes use update everywhere, active, and eager replication to replicate data
-    def __init__(self, host, id, peers, bigBrotherTalking):
-        Node.__init__(self, host, id, CORE_LAYER, bigBrotherTalking)
+    def __init__(self, host, id, peers):
+        Node.__init__(self, host, id, CORE_LAYER)
         print("Initializing Core Node", id)
 
         # Lock
@@ -28,6 +28,8 @@ class CoreNode(Node, ABC):
     def run(self):
         # Accept all incoming and connect to outgoing ports
         thread_peers = threading.Thread(target=self.accept_peers, args=(self.peers, ))
+        pid = self.layer + str(self.id)
+        thread_peers.name = pid + "Peers"
         thread_peers.start()
 
         time.sleep(0.5)
@@ -42,11 +44,10 @@ class CoreNode(Node, ABC):
         rcv_threads = []
         for s in self.receive_peers:
             rcv = threading.Thread(target=self.receive_from_peer, args=(s,))
+            pid = self.layer + str(self.id)
+            rcv.name = pid + "RCV"
             rcv_threads.append(rcv)
             rcv.start()
-
-        # Connect to big brother if required
-        if self.bigBrotherTalking: self.connect_to_big_bro()
 
         # While alive dispatch outgoing messages
         while self.is_alive or self.msg_queue:
@@ -62,7 +63,10 @@ class CoreNode(Node, ABC):
         # Program Closing
         for thread in rcv_threads:
             thread.join()
-        if self.bigBrotherThread is not None: self.bigBrotherThread.join()
+        if self.bigBrotherTalking:
+            self.bigBrotherSocket.close()
+            self.bigBrotherThread.join()
+
         print("CLOSED NODE", self.layer, self.id)
 
     # Connect outgoing connections to peers

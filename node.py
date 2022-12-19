@@ -4,11 +4,13 @@ import threading
 from abc import abstractmethod
 import re
 from ports import *
+import asyncio
+import websockets
 
 class Node:
     # Core layer nodes use update everywhere, active, and eager replication to replicate data
-    def __init__(self, host, id, layer, bigBrotherTalking):
-        
+    def __init__(self, host, id, layer):
+
         # Boolean to kill the process
         self.is_alive = True
 
@@ -16,7 +18,12 @@ class Node:
         self.host = host
 
         self.bigBrotherThread = None
-        self.bigBrotherTalking = bigBrotherTalking
+        self.bigBrotherSocket = None
+        self.bigBrotherTalking = False
+
+        # Web Socket
+        #TODO: Set WEBSOCKET connection
+        #self.webSocket = websockets.connect("ws://localhost:8765")
 
         # Override in subclasses' constructor methods
         self.receive_peers = None
@@ -52,12 +59,15 @@ class Node:
     def run(self):
         pass
 
+    # Function to call to enable big brother connection to this node
     def connect_to_big_bro(self):
-        print("BIG BRO TALKING")
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((HOST, BIG_BROTHER_PORT))
-        self.bigBrotherThread = threading.Thread(target=self.receive_from_peer, args=(sock, sock))
+        self.bigBrotherTalking = True
+        self.bigBrotherSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.bigBrotherSocket.connect((HOST, BIG_BROTHER_PORT))
+        self.bigBrotherThread = threading.Thread(target=self.receive_from_peer, args=(self.bigBrotherSocket, self.bigBrotherSocket))
+        self.bigBrotherThread.name = "BIGBRO THREAD"
         self.bigBrotherThread.start()
+        print("BIG BRO CONNECTED")
 
     # Add child nodes to connect to
     def add_child(self, child):
@@ -77,6 +87,10 @@ class Node:
         if mode == 'a': file.write('\n')
         file.write(str(self.versions))
         file.close()
+
+        #TODO:Send to websocket
+        #message = self.layer + '\n' + str(self.layerPort) + '\n' + str(self.id) + '\n' + str(self.versions)
+        #self.webSocket.send(message)
 
     def receive_from_peer(self, s, bigBrother = None):
         while self.is_alive:

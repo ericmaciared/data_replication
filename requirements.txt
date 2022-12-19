@@ -1,0 +1,3 @@
+Flask==2.2.2
+prctl==1.0.1
+websockets==10.4

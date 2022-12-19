@@ -3,6 +3,7 @@ import asyncio
 import websockets
 
 app = Flask(__name__)
+app.config['TESTING'] = True
 
 global nodes
 
