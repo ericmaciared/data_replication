@@ -82,6 +82,10 @@ target/
 profile_default/
 ipython_config.py
 
+# Files that should not be here
+/.idea/*
+.idea/*
+
 # pyenv
 #   For a library or package, you might want to ignore these files since the code is
 #   intended to run in multiple environments; otherwise, check them in:
@@ -150,3 +154,7 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+*.xml
+/logs/
+logs
+logs/
