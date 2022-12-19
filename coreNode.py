@@ -92,7 +92,7 @@ class CoreNode(Node, ABC):
     def write_value(self, position, value):
         super().write_value(position, value)
         self.num_updates += 1
-
+        print("hey, # of updates is", self.num_updates)
 
     # Accept all incoming connections
     def accept_peers(self, nodes):

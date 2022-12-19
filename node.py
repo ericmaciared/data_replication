@@ -22,10 +22,12 @@ class Node:
         self.layer = layer
         self.port = id
 
-        # Set port depending on Layer
-        if layer == CORE_LAYER: self.port += CORE_PORT
-        elif layer == L1_LAYER: self.port += L1_PORT
-        else: self.port += L2_PORT
+        # Set portLayer depending on Layer
+        if layer == CORE_LAYER: self.layerPort = CORE_PORT
+        elif layer == L1_LAYER: self.layerPort = L1_PORT
+        else: self.layerPort = L2_PORT
+
+        self.port += self.layerPort
         
         # Init versions of file (Array of 10 ints)
         self.versions = [0] * 10
@@ -50,7 +52,8 @@ class Node:
     # Add child nodes to connect to
     def add_child(self, child):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((HOST, child + self.layerPort))
+        port = child + self.layerPort + CHILD_OFFSET
+        sock.connect((HOST, port))
         self.children.append(sock)
         print(self.layer, "Node", self.id, "connected to child", child)
 
@@ -79,10 +82,16 @@ class Node:
             self.msg_queue.append(message)
             self.dest_queue.append(child)
 
+    def close_children(self):
+        message = str(self.id) + '\n' + CLOSE
+        for child in self.children:
+            self.msg_queue.append(message)
+            self.dest_queue.append(child)
+
     @abstractmethod
     def process_message(self, message, bigBrother=None):
         message = message.decode().split('\n')
-        print(self.id, "received message", message)
+        print(self.layer, self.id, "received message", message)
         reply = None
         # Message: SenderID + Instruction + Value1 + Value2
 
@@ -103,10 +112,7 @@ class Node:
             reply = str(self.id) + '\n' + WRITE_ACK + '\n' + str(self.versions[position])
 
         elif instruction == UPDATE:
-            arrayString = re.sub(r'[<>()]', "", message[2])
-            for i, value in enumerate(arrayString.split(",")):
-                self.write_value(i, value)
-
+            self.update_values(message[2])
             reply = str(self.id) + '\n' + UPDATE_ACK + '\n' + str(self.versions)
 
         elif instruction == BEGIN:
@@ -123,8 +129,11 @@ class Node:
     def process_instruction(self, instruction, sender, reply, position, value, bigBrother):
         pass
 
-
-
+    def update_values(self, arrayString):
+        arrayString = re.sub(r'[<>()\[\]]', "", arrayString)
+        for i, value in enumerate(arrayString.split(",")):
+            self.versions[i] = int(value)
+        self.write_to_log()
 
 
 

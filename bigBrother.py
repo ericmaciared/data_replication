@@ -95,23 +95,32 @@ def init_structure(readNode=None):
     nodes.append(Layer2Node(HOST, id = 1, parentId = 2))
     nodes.append(Layer2Node(HOST, id = 2, parentId = 2))
 
-    for n in nodes:
-        if n is Layer1Node:
-            for m in nodes:
-                if m.id == n.parentId and m is CoreNode:
-                    m.add_child(n.id)
-
-    for n in nodes:
-        if n is Layer2Node:
-            for m in nodes:
-                if m.id == n.parentId and m is Layer1Node:
-                    m.add_child(n.id)
-
     for node in nodes:
         node_threads.append(threading.Thread(target= node.run))
 
     for thread in node_threads:
         thread.start()
+
+    for n in nodes:
+        if type(n) is Layer1Node:
+            print("NODE N", n.id)
+            for m in nodes:
+                if type(m) is CoreNode:
+                    print("NODE M", m.id)
+                    if m.id == n.parentId:
+                        print("HEY PUTA PUTA")
+                        m.add_child(n.id)
+    print("AJ")
+
+    for n in nodes:
+        if type(n) is Layer2Node:
+            print("NODE M", n.id)
+            for m in nodes:
+                if type(m) is Layer1Node:
+                    print("NODE K", m.id)
+                    if m.id == n.parentId:
+                        print("HEY PUTA PUTA PUNYETAAAA")
+                        m.add_child(n.id)
 
     for thread in node_threads:
         thread.join()
