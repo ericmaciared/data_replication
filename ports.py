@@ -1,30 +1,44 @@
 import socket
 
-# Ports
+# Networking constants
 HOST = socket.gethostbyname(socket.gethostname())
 BIG_BROTHER_PORT = 6000
-CORE_PORT = 7000
-L1_PORT = 8000
-L2_PORT = 9000
-CHILD_OFFSET = 1000
+CORE_LAYER_PORT = 7000
+L1_LAYER_PORT = 8000
+L2_LAYER_PORT = 9000
 
-# Message Size
-DEF_MSG_SIZE = 1024
+CORE_NODES = 3
+L1_NODES = 2
+L2_NODES = 2
 
-# Messages
-READ = "READ"
-WRITE = "WRITE"
-BEGIN = "BEGIN"
-CLOSE = "CLOSE"
-UPDATE = "UPDATE"
 
-READ_ACK = "READ_ACK"
-WRITE_ACK = "WRITE_ACK"
-BEGIN_ACK = "BEGIN_ACK"
-UPDATE_ACK = "UPDATE_ACK"
+def node_port(layer, id):
+    """Returns port for node with id in layer"""
+    return layer + id
 
-# Constants
-NUM_CORES = 3
-CORE_LAYER = 'A'
-L1_LAYER = 'B'
-L2_LAYER = 'C'
+def layer_port(layer):
+    return layer * 1000 + BIG_BROTHER_PORT
+
+def nodes_per_layer(layer):
+    if layer == 1:
+        return CORE_NODES
+    elif layer == 2:
+        return L1_NODES
+    elif layer == 3:
+        return L2_NODES
+    else:
+        return 1
+
+
+def id_for_layer(layer):
+    if layer == 0 or layer == BIG_BROTHER_PORT:
+        return 0
+    elif layer == 1 or layer == CORE_LAYER_PORT:
+        return 'A'
+    elif layer == 2 or layer == L1_LAYER_PORT:
+        return 'B'
+    elif layer == 3 or layer == L2_LAYER_PORT:
+        return 'C'
+    else:
+        return None
+
