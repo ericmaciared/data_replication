@@ -50,7 +50,7 @@ class Node:
                 data = conn.recv(1024)
                 message = pickle.loads(data)
                 if message.instruction.operation == ACK: # Do not queue ACK messages
-                    print(f"{self.name}: ACK Received")
+                    #print(f"{self.name}: ACK Received")
                     self.ack_count += 1
                 else:
                     self.message_queue.put(message)
@@ -62,7 +62,7 @@ class Node:
             if not self.message_queue.empty():
                 message = self.message_queue.get()
                 self.execute_instruction(message)
-                print(f"{self.name}: Dispatched: {str(message.instruction)}")
+                #print(f"{self.name}: Dispatched: {str(message.instruction)}")
 
 
     def send_message(self, message):
@@ -114,7 +114,10 @@ class Node:
 
     ### VERSIONS AND LOG FUNCTIONS ###
     def read_value(self, position):
-        print(f"{self.name}: Read value at position {position}: {self.versions[position]}")
+        #print(f"{self.name}: Read value at position {position}: {self.versions[position]}")
+        instruction = Instruction(operation=READ_RESULT, position=position, value=self.versions[position])
+        message = Message(sender = self.port, destination=BIG_BROTHER_PORT, instruction=instruction)
+        self.send_message(message)
 
     def write_value(self, position, value):
         """Writes value to node version at position"""

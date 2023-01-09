@@ -29,6 +29,17 @@ def nodes_per_layer(layer):
     else:
         return 1
 
+def id_by_port(port):
+    if port == BIG_BROTHER_PORT:
+        return "Big Brother"
+    elif port == CORE_LAYER_PORT:
+        return f'A{port-CORE_LAYER_PORT}'
+    elif port == L1_LAYER_PORT:
+        return f'B{port-L1_LAYER_PORT}'
+    elif port == L2_LAYER_PORT:
+        return f'C{port-L2_LAYER_PORT}'
+    else:
+        return None
 
 def id_for_layer(layer):
     if layer == 0 or layer == BIG_BROTHER_PORT:

@@ -6,6 +6,7 @@ WRITE = 'w'
 WRITE_ACK = 'wa'
 ACK = 'a'
 READ = 'r'
+READ_RESULT = 'rr'
 END = 'c'
 QUIT = 'q'
 

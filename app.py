@@ -12,8 +12,6 @@ for i in range(3):
     for j in range(nodes_per_layer(i+1)):
         versions[f'{id_for_layer(i+1)}{j+1}'] = str([0]*10)
 
-print(versions)
-
 @socketio.on('version')
 def on_version(sid, version):
     versions[sid] = version

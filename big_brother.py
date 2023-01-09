@@ -61,7 +61,7 @@ class BigBrother:
     def send_message(self, message):
         """Sends message to node with id in layer"""
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            print(f"{self.name}: Connecting to: {message.destination}")
+            #print(f"{self.name}: Connecting to: {message.destination}")
             s.connect((HOST, message.destination))
             message = pickle.dumps(message)
             s.sendall(message)
@@ -77,6 +77,8 @@ class BigBrother:
                 message = pickle.loads(data)
                 if message.instruction.operation == ACK: 
                     self.ack = 1
+                elif message.instruction.operation == READ_RESULT:
+                    print(f"{self.name}: Received Read at [{message.instruction.position}]: {message.instruction.value}")
                 elif message.instruction.operation == QUIT:
                     self.alive = False
 

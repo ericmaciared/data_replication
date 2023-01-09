@@ -28,11 +28,11 @@ class CoreNode(Node, ABC):
             #print(f"{self.name}: Waiting for ACKs {message.instruction}")
             while self.ack_count < len(self.peers) + 1:
                 pass
-            print(f"{self.name}: Executed write {message.instruction}")
+            #print(f"{self.name}: Executed write {message.instruction}")
 
             # Commit changes to big brother
             message.instruction.operation = ACK
-            print(f"{self.name}: Sending ACK to big brother {message.instruction}")
+            #print(f"{self.name}: Sending ACK to big brother {message.instruction}")
             self.send_message(Message(sender=self.port, destination=BIG_BROTHER_PORT, instruction=message.instruction))
         
         elif message.instruction.operation == WRITE_ACK:
